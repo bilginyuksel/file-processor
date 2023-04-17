@@ -10,6 +10,12 @@ Run the application
 make up
 ```
 
+Run tests
+
+```bash
+make test
+```
+
 Create auto-generated codes
 
 ```bash
