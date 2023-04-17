@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package bilginyuksel.fileprocr;
+
+option go_package = "github.com/bilginyuksel/file-processor/pb";
+
+service Procr {
+    rpc Upload(UploadRequest) returns (UploadResponse) {}
+}
+
+message UploadRequest {
+    bytes data = 1;
+}
+
+message UploadResponse { }
