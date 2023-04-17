@@ -3,6 +3,8 @@ package fileprocr
 import (
 	"errors"
 	"io"
+
+	"github.com/google/uuid"
 )
 
 //go:generate mockgen -source=fileprocr.go -destination=mock/fileprocr.go -package=mock
@@ -27,7 +29,8 @@ func NewProcr(chunkSize int, storage storage) *Procr {
 // Content could be very big so instead of loading it into
 // memory in one go it writes to the disk in chunks
 func (p *Procr) Store(r io.Reader) error {
-	w, err := p.storage.Create("test.txt")
+	filename := uuid.NewString()
+	w, err := p.storage.Create(filename)
 	if err != nil {
 		return err
 	}
