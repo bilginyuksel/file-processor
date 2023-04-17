@@ -23,7 +23,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
-	fileStorage := fileprocr.NewLocalFileStorage()
+	fileStorage := fileprocr.NewLocalFileStorage(".files")
 	if err := fileStorage.Configure(); err != nil {
 		panic(err)
 	}

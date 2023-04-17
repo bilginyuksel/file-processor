@@ -20,7 +20,8 @@ func TestStore(t *testing.T) {
 	mw := &mockWriteCloser{}
 	mockStorage.EXPECT().Create(gomock.Any()).Return(mw, nil)
 
-	assert.NoError(t, proc.Store(buf))
+	_, err := proc.Store(buf)
+	assert.NoError(t, err)
 	assert.Equal(t, content, string(mw.content))
 	assert.Equal(t, 4, mw.writtenTimes)
 }
@@ -31,7 +32,8 @@ func TestStore_FailToCreateFile_ReturnErr(t *testing.T) {
 
 	mockStorage.EXPECT().Create(gomock.Any()).Return(nil, assert.AnError)
 
-	assert.Error(t, proc.Store(nil))
+	_, err := proc.Store(nil)
+	assert.Error(t, err)
 }
 
 func TestStore_FailToWriteToWriter_ReturnErr(t *testing.T) {
@@ -44,7 +46,8 @@ func TestStore_FailToWriteToWriter_ReturnErr(t *testing.T) {
 	mw := &mockWriteCloser{failOnWrite: true}
 	mockStorage.EXPECT().Create(gomock.Any()).Return(mw, nil)
 
-	assert.Error(t, proc.Store(buf))
+	_, err := proc.Store(buf)
+	assert.Error(t, err)
 }
 
 type mockWriteCloser struct {

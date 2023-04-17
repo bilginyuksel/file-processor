@@ -21,8 +21,10 @@ func NewGrpcServer(svc fileprocrService) *GrpcServer {
 
 func (s *GrpcServer) Upload(ctx context.Context, req *pb.UploadRequest) (*pb.UploadResponse, error) {
 	buf := bytes.NewBuffer(req.GetData())
-	if err := s.svc.Store(buf); err != nil {
+	filename, err := s.svc.Store(buf)
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "could not process file")
 	}
-	return &pb.UploadResponse{}, nil
+
+	return &pb.UploadResponse{Filename: filename}, nil
 }

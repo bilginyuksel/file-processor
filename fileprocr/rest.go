@@ -9,7 +9,7 @@ import (
 )
 
 type fileprocrService interface {
-	Store(io.Reader) error
+	Store(io.Reader) (string, error)
 }
 
 type RestHandler struct {
@@ -36,10 +36,11 @@ func (h *RestHandler) uploadFile(c echo.Context) error {
 	}
 	defer f.Close()
 
-	if err := h.svc.Store(f); err != nil {
+	filename, err := h.svc.Store(f)
+	if err != nil {
 		zap.L().Error("File could not stored", zap.Error(err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "could not process file"})
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, map[string]string{"filename": filename})
 }

@@ -9,13 +9,20 @@ type LocalFileStorage struct {
 	dir string
 }
 
-func NewLocalFileStorage() *LocalFileStorage {
-	return &LocalFileStorage{dir: ".files"}
+func NewLocalFileStorage(dir string) *LocalFileStorage {
+	if dir != "" {
+		dir = dir + "/"
+	}
+	return &LocalFileStorage{dir}
 }
 
 // Check if the directory is already there
 // If the directory does not created yet create the directory
 func (s *LocalFileStorage) Configure() error {
+	if s.dir == "" {
+		return nil
+	}
+
 	if _, err := os.Stat(s.dir); os.IsNotExist(err) {
 		return os.Mkdir(s.dir, 0777)
 	}
@@ -24,5 +31,5 @@ func (s *LocalFileStorage) Configure() error {
 }
 
 func (s *LocalFileStorage) Create(name string) (io.WriteCloser, error) {
-	return os.Create(s.dir + "/" + name)
+	return os.Create(s.dir + name)
 }

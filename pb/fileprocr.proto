@@ -12,4 +12,6 @@ message UploadRequest {
     bytes data = 1;
 }
 
-message UploadResponse { }
+message UploadResponse { 
+    string filename = 1;
+}

@@ -16,7 +16,7 @@ func TestLocalFileStorage(t *testing.T) {
 
 	name := "local_file_storage_test.txt"
 
-	lf := fileprocr.NewLocalFileStorage()
+	lf := fileprocr.NewLocalFileStorage(".files")
 
 	require.NoError(t, lf.Configure())
 
