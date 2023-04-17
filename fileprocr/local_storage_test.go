@@ -16,9 +16,10 @@ func TestLocalFileStorage(t *testing.T) {
 
 	name := "local_file_storage_test.txt"
 
-	require.NoError(t, os.Mkdir(".files", 0777))
-
 	lf := fileprocr.NewLocalFileStorage()
+
+	require.NoError(t, lf.Configure())
+
 	wc, err := lf.Create(name)
 
 	assert.NoError(t, err)

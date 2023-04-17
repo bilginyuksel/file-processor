@@ -24,6 +24,10 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 
 	fileStorage := fileprocr.NewLocalFileStorage()
+	if err := fileStorage.Configure(); err != nil {
+		panic(err)
+	}
+
 	fileprocrSvc := fileprocr.NewProcr(1024, fileStorage)
 
 	e := echo.New()
