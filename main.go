@@ -23,8 +23,11 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
+	fileStorage := fileprocr.NewLocalFileStorage()
+	fileprocrSvc := fileprocr.NewProcr(1024, fileStorage)
+
 	e := echo.New()
-	fileprocrRestHandler := &fileprocr.RestHandler{}
+	fileprocrRestHandler := fileprocr.NewRestHandler(fileprocrSvc)
 	fileprocrRestHandler.RegisterRoutes(e)
 
 	go func() {
@@ -34,16 +37,24 @@ func main() {
 		}
 	}()
 
-	grpcSrv := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
-	fileProcrGrpcServer := &fileprocr.GrpcServer{}
+	// Because the file size can be too big
+	// Instead of using the default one, increased the file size
+	size := 1024 * 1024 * 50
+	grpcSrv := grpc.NewServer(
+		grpc.Creds(insecure.NewCredentials()),
+		grpc.MaxRecvMsgSize(size),
+		grpc.MaxSendMsgSize(size),
+	)
+	fileProcrGrpcServer := fileprocr.NewGrpcServer(fileprocrSvc)
 	pb.RegisterProcrServer(grpcSrv, fileProcrGrpcServer)
 
-	lis, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		panic(err)
-	}
-
 	go func() {
+		lis, err := net.Listen("tcp", ":8080")
+		if err != nil {
+			zap.L().Error("Failed to listen tcp port")
+			quit <- os.Interrupt
+		}
+
 		zap.L().Info("Starting gRPC server")
 		if err := grpcSrv.Serve(lis); err != nil {
 			quit <- os.Interrupt

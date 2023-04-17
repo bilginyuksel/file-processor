@@ -1,12 +1,23 @@
 package fileprocr
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
+type fileprocrService interface {
+	Store(io.Reader) error
+}
+
 type RestHandler struct {
+	svc fileprocrService
+}
+
+func NewRestHandler(svc fileprocrService) *RestHandler {
+	return &RestHandler{svc: svc}
 }
 
 func (h *RestHandler) RegisterRoutes(e *echo.Echo) {
@@ -14,5 +25,21 @@ func (h *RestHandler) RegisterRoutes(e *echo.Echo) {
 }
 
 func (h *RestHandler) uploadFile(c echo.Context) error {
-	return c.String(http.StatusOK, "OK")
+	fileheader, err := c.FormFile("file")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "could not get file"})
+	}
+
+	f, err := fileheader.Open()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "could not open file"})
+	}
+	defer f.Close()
+
+	if err := h.svc.Store(f); err != nil {
+		zap.L().Error("File could not stored", zap.Error(err))
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "could not process file"})
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }

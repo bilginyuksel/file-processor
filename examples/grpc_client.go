@@ -16,6 +16,8 @@ func main() {
 	}
 
 	client := pb.NewProcrClient(conn)
-	res, err := client.Upload(context.Background(), &pb.UploadRequest{})
+	res, err := client.Upload(context.Background(), &pb.UploadRequest{
+		Data: []byte("hello world!"),
+	})
 	fmt.Println(res, err)
 }
