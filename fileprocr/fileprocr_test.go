@@ -50,6 +50,14 @@ func TestStore_FailToWriteToWriter_ReturnErr(t *testing.T) {
 	assert.Error(t, err)
 }
 
+type mockReadCloser struct {
+	*bytes.Buffer
+}
+
+func (mr *mockReadCloser) Close() error {
+	return nil
+}
+
 type mockWriteCloser struct {
 	writtenTimes int
 	content      []byte
