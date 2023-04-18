@@ -63,3 +63,40 @@ func (mr *MockstorageMockRecorder) Open(name interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Open", reflect.TypeOf((*Mockstorage)(nil).Open), name)
 }
+
+// Mockidgenerator is a mock of idgenerator interface.
+type Mockidgenerator struct {
+	ctrl     *gomock.Controller
+	recorder *MockidgeneratorMockRecorder
+}
+
+// MockidgeneratorMockRecorder is the mock recorder for Mockidgenerator.
+type MockidgeneratorMockRecorder struct {
+	mock *Mockidgenerator
+}
+
+// NewMockidgenerator creates a new mock instance.
+func NewMockidgenerator(ctrl *gomock.Controller) *Mockidgenerator {
+	mock := &Mockidgenerator{ctrl: ctrl}
+	mock.recorder = &MockidgeneratorMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *Mockidgenerator) EXPECT() *MockidgeneratorMockRecorder {
+	return m.recorder
+}
+
+// Generate mocks base method.
+func (m *Mockidgenerator) Generate() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Generate")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Generate indicates an expected call of Generate.
+func (mr *MockidgeneratorMockRecorder) Generate() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*Mockidgenerator)(nil).Generate))
+}

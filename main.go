@@ -28,7 +28,8 @@ func main() {
 		panic(err)
 	}
 
-	fileprocrSvc := fileprocr.NewProcr(1024, fileStorage)
+	idGenerator := fileprocr.NewIDGenerator()
+	fileprocrSvc := fileprocr.NewProcr(1024, fileStorage, idGenerator)
 
 	e := echo.New()
 	fileprocrRestHandler := fileprocr.NewRestHandler(fileprocrSvc)

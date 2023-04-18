@@ -8,26 +8,38 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
 //go:generate mockgen -source=fileprocr.go -destination=mock/fileprocr.go -package=mock
-type storage interface {
-	Create(name string) (io.WriteCloser, error)
-	Open(name string) (io.ReadCloser, error)
-}
+type (
+	storage interface {
+		Create(name string) (io.WriteCloser, error)
+		Open(name string) (io.ReadCloser, error)
+	}
+
+	idgenerator interface {
+		Generate() string
+	}
+)
 
 type Procr struct {
+	// If as a result more than error msg is necessary
+	// then the model should be a custom struct
+	ProcrResultQueue chan error
+
 	chunkSize int
 
 	storage storage
+	idgen   idgenerator
 }
 
-func NewProcr(chunkSize int, storage storage) *Procr {
+func NewProcr(chunkSize int, storage storage, idgen idgenerator) *Procr {
 	return &Procr{
-		chunkSize: chunkSize,
-		storage:   storage,
+		chunkSize:        chunkSize,
+		storage:          storage,
+		idgen:            idgen,
+		ProcrResultQueue: make(chan error),
 	}
 }
 
@@ -35,7 +47,7 @@ func NewProcr(chunkSize int, storage storage) *Procr {
 // Content could be very big so instead of loading it into
 // memory in one go it writes to the disk in chunks
 func (p *Procr) Store(r io.Reader) (string, error) {
-	filename := uuid.NewString()
+	filename := p.idgen.Generate()
 	w, err := p.storage.Create(filename)
 	if err != nil {
 		zap.L().Error("failed to create a new file", zap.Error(err))
@@ -62,6 +74,17 @@ func (p *Procr) Store(r io.Reader) (string, error) {
 	err = w.Close()
 
 	zap.L().Info("file stored to the store, checking if it is proccessable")
+
+	go func() {
+		err := p.processFile(filename)
+		if err != nil {
+			zap.L().Warn("could not process latest stored file",
+				zap.String("filename", filename),
+				zap.Error(err),
+			)
+		}
+		p.ProcrResultQueue <- err
+	}()
 
 	return filename, err
 }
@@ -105,7 +128,9 @@ func (p *Procr) processFile(name string) error {
 	}
 	defer wc.Close()
 
-	return json.NewEncoder(wc).Encode(m)
+	err = json.NewEncoder(wc).Encode(m)
+	fmt.Println(err)
+	return err
 }
 
 var vowelRegex = regexp.MustCompile(`^[aeiouAEIOU]`)
@@ -122,13 +147,22 @@ func removeKeysStartswithVowel(m map[string]any) {
 }
 
 func increaseIntegerKeys(m map[string]any) {
+	// Use newkv to avoid reiterations over the new key
+	// Because the maps are unordered data structures in Golang
+	// Can't gurantee the increased key getting increased more than once
+	// Using a new map it is guaranteed.
+	newkv := make(map[string]any)
 	for k, v := range m {
 		if i, err := strconv.ParseInt(k, 10, 64); err == nil {
 			delete(m, k)
-			m[fmt.Sprintf("%d", i+1000)] = v
+			newkv[fmt.Sprintf("%d", i+1000)] = v
 		}
 
 		traverseMapsAndArrays(v, increaseIntegerKeys)
+	}
+
+	for k, v := range newkv {
+		m[k] = v
 	}
 }
 

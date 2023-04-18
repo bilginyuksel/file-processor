@@ -15,52 +15,80 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFileprocrRestHandler(t *testing.T) {
+func TestFileProcrRestHandlerUploadFile(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping rest functional test")
+		t.Skip("Skipping rest handler tests")
 	}
 
-	testServer := startTestServer(t)
-	defer testServer.Close()
+	testCases := []struct {
+		desc                        string
+		content                     []byte
+		extraAssertionsForAsyncTask func(string, *fileprocr.Procr)
+	}{
+		{
+			desc:    "Given file is not a JSON file, should only save raw file",
+			content: []byte("Hello world!"),
+			extraAssertionsForAsyncTask: func(filename string, p *fileprocr.Procr) {
+				assert.Error(t, <-p.ProcrResultQueue)
+				assert.Error(t, os.Remove(filename+".json"))
+			},
+		},
+		{
+			desc:    "Given file is a JSON file, should save both raw and json files",
+			content: []byte(`{"1": 5, "s": 10}`),
+			extraAssertionsForAsyncTask: func(filename string, p *fileprocr.Procr) {
+				assert.NoError(t, <-p.ProcrResultQueue)
+				assert.NoError(t, os.Remove(filename+".json"))
+			},
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			testServer, procr := startTestServer(t)
+			defer testServer.Close()
 
-	buf := new(bytes.Buffer)
-	mw := multipart.NewWriter(buf)
-	w, err := mw.CreateFormFile("file", "test.txt")
-	require.NoError(t, err)
+			buf := new(bytes.Buffer)
+			mw := multipart.NewWriter(buf)
+			w, err := mw.CreateFormFile("file", "test.txt")
+			require.NoError(t, err)
 
-	_, err = w.Write([]byte("Hello world!"))
-	require.NoError(t, err)
+			_, err = w.Write(tC.content)
+			require.NoError(t, err)
 
-	require.NoError(t, mw.Close())
+			require.NoError(t, mw.Close())
 
-	req, err := http.NewRequest(http.MethodPost, testServer.URL+"/files", buf)
-	require.NoError(t, err)
-	req.Header.Add("Content-Type", mw.FormDataContentType())
+			req, err := http.NewRequest(http.MethodPost, testServer.URL+"/files", buf)
+			require.NoError(t, err)
+			req.Header.Add("Content-Type", mw.FormDataContentType())
 
-	res, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	defer res.Body.Close()
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			defer res.Body.Close()
 
-	var m map[string]string
-	require.NoError(t, json.NewDecoder(res.Body).Decode(&m))
+			var m map[string]string
+			require.NoError(t, json.NewDecoder(res.Body).Decode(&m))
 
-	t.Log(m)
+			t.Log(m)
 
-	filename := m["filename"]
+			filename := m["filename"]
 
-	assert.NoError(t, err)
-	assert.NoError(t, os.Remove(filename))
+			assert.NoError(t, err)
+			assert.NoError(t, os.Remove(filename))
+			tC.extraAssertionsForAsyncTask(filename, procr)
+		})
+	}
 }
 
-func startTestServer(t *testing.T) *httptest.Server {
+func startTestServer(t *testing.T) (*httptest.Server, *fileprocr.Procr) {
 	e := echo.New()
 
 	lfs := fileprocr.NewLocalFileStorage("")
+	idgen := fileprocr.NewIDGenerator()
 	require.NoError(t, lfs.Configure())
-	svc := fileprocr.NewProcr(1024, lfs)
+	svc := fileprocr.NewProcr(1024, lfs, idgen)
 	handler := fileprocr.NewRestHandler(svc)
 
 	handler.RegisterRoutes(e)
 
-	return httptest.NewServer(e.Server.Handler)
+	return httptest.NewServer(e.Server.Handler), svc
 }
