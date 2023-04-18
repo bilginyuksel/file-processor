@@ -33,3 +33,7 @@ func (s *LocalFileStorage) Configure() error {
 func (s *LocalFileStorage) Create(name string) (io.WriteCloser, error) {
 	return os.Create(s.dir + name)
 }
+
+func (s *LocalFileStorage) Open(name string) (io.ReadCloser, error) {
+	return os.Open(s.dir + name)
+}
